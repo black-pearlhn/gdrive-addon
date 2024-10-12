@@ -24,16 +24,37 @@ class gdrive {
     this.gapihost = 'https://www.googleapis.com'
     this.credentials = credentials
   }
-  async streamFile(range = "", file_id, file_name) {
-    //console.log(`streamFile: ${file_id}, range: ${range}`)
-    let fetchURL = `${this.gapihost}/drive/v3/files/${file_id}?alt=media`
-    let fetchData = await this.authData()
-    fetchData.headers['Range'] = range
-    let streamResp = await fetch(fetchURL, fetchData)
-    let { readable, writable } = new TransformStream()
-    streamResp.body.pipeTo(writable)
-    return new Response(readable, streamResp)
-  }
+async streamFile(range = "", file_id, file_name) {
+    let fetchURL = `${this.gapihost}/drive/v3/files/${file_id}?alt=media`;
+    let fetchData = await this.authData();
+
+    if (range) {
+        fetchData.headers['Range'] = range; // Forward the range header
+    }
+
+    let streamResp = await fetch(fetchURL, fetchData);
+
+    // Check for a successful response
+    if (streamResp.status === 206) {
+        const contentRange = streamResp.headers.get('Content-Range');
+        const totalLength = contentRange.split('/')[1]; // Total length of the file
+
+        // Create a new response with the appropriate headers
+        return new Response(streamResp.body, {
+            status: 206,
+            headers: {
+                'Content-Range': contentRange,
+                'Content-Length': totalLength,
+                'Accept-Ranges': 'bytes',
+                'Content-Type': 'video/mp4' // Change based on your file type
+            }
+        });
+    } else {
+        // Handle errors or unexpected status codes
+        return new Response('Error fetching file', { status: streamResp.status });
+    }
+}
+
   async accessToken() {
     //console.log("accessToken")
     if (!this.credentials.token || this.credentials.token.expires_in < Date.now()) {
