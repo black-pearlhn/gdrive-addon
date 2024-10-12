@@ -34,6 +34,21 @@ async streamFile(range = "", file_id, file_name) {
 
     let streamResp = await fetch(fetchURL, fetchData);
 
+    // Determine Content-Type based on file extension
+    const extension = file_name.split('.').pop().toLowerCase();
+    const mimeTypes = {
+        'mp4': 'video/mp4',
+        'mkv': 'video/x-matroska',
+        'avi': 'video/x-msvideo',
+        'mov': 'video/quicktime',
+        'webm': 'video/webm',
+        'flv': 'video/x-flv',
+        'mp3': 'audio/mpeg',
+        'wav': 'audio/wav',
+    };
+
+    const contentType = mimeTypes[extension] || 'application/octet-stream'; // Default type
+
     // Check for a successful response
     if (streamResp.status === 206) {
         const contentRange = streamResp.headers.get('Content-Range');
@@ -46,7 +61,7 @@ async streamFile(range = "", file_id, file_name) {
                 'Content-Range': contentRange,
                 'Content-Length': totalLength,
                 'Accept-Ranges': 'bytes',
-                'Content-Type': 'video/mp4' // Change based on your file type
+                'Content-Type': contentType
             }
         });
     } else {
@@ -54,6 +69,7 @@ async streamFile(range = "", file_id, file_name) {
         return new Response('Error fetching file', { status: streamResp.status });
     }
 }
+
 
   async accessToken() {
     //console.log("accessToken")
