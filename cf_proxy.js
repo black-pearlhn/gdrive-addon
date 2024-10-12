@@ -24,17 +24,7 @@ class gdrive {
     this.gapihost = 'https://www.googleapis.com'
     this.credentials = credentials
   }
-async streamFile(range = "", file_id, file_name) {
-    let fetchURL = `${this.gapihost}/drive/v3/files/${file_id}?alt=media`;
-    let fetchData = await this.authData();
-
-    if (range) {
-        fetchData.headers['Range'] = range; // Forward the range header
-    }
-
-    let streamResp = await fetch(fetchURL, fetchData);
-
-    // Determine Content-Type based on file extension
+getMimeType(file_name) {
     const extension = file_name.split('.').pop().toLowerCase();
     const mimeTypes = {
         'mp4': 'video/mp4',
@@ -46,29 +36,49 @@ async streamFile(range = "", file_id, file_name) {
         'mp3': 'audio/mpeg',
         'wav': 'audio/wav',
     };
+    return mimeTypes[extension] || 'application/octet-stream'; // Default type
+}
 
-    const contentType = mimeTypes[extension] || 'application/octet-stream'; // Default type
+async streamFile(range = "", file_id, file_name) {
+    let fetchURL = `${this.gapihost}/drive/v3/files/${file_id}?alt=media`;
+    let fetchData = await this.authData();
 
-    // Check for a successful response
-    if (streamResp.status === 206) {
+    if (range) {
+        fetchData.headers['Range'] = range; // Forward the range header
+    }
+
+    let streamResp = await fetch(fetchURL, fetchData);
+
+    // Check for response status
+    if (streamResp.ok) {
         const contentRange = streamResp.headers.get('Content-Range');
-        const totalLength = contentRange.split('/')[1]; // Total length of the file
+        const totalLength = contentRange ? contentRange.split('/')[1] : streamResp.headers.get('Content-Length');
 
-        // Create a new response with the appropriate headers
         return new Response(streamResp.body, {
-            status: 206,
+            status: streamResp.status,
             headers: {
                 'Content-Range': contentRange,
                 'Content-Length': totalLength,
                 'Accept-Ranges': 'bytes',
-                'Content-Type': contentType
+                'Content-Type': this.getMimeType(file_name)
             }
         });
     } else {
-        // Handle errors or unexpected status codes
-        return new Response('Error fetching file', { status: streamResp.status });
+        // Handle various error cases
+        switch (streamResp.status) {
+            case 404:
+                return new Response('File not found', { status: 404 });
+            case 403:
+                return new Response('Access denied', { status: 403 });
+            case 401:
+                return new Response('Unauthorized', { status: 401 });
+            default:
+                return new Response('Error fetching file: ' + streamResp.statusText, { status: streamResp.status });
+        }
     }
+  console.log(`Requested Range: ${range}, File ID: ${file_id}`);
 }
+
 
 
   async accessToken() {
