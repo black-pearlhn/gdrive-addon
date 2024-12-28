@@ -74,8 +74,7 @@ class Streams:
         # Include headers for partial requests to enable streaming
         self.constructed["behaviorHints"]["proxyHeaders"] = {
             "request": {
-                "Authorization": f"Bearer {self.acc_token}",
-                "Range": "bytes=0-1048575"  # Default range request; adjust dynamically for chunks
+                "Authorization": f"Bearer {self.acc_token}", # Default range request; adjust dynamically for chunks
             }
         }
     
