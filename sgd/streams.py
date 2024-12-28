@@ -75,7 +75,7 @@ class Streams:
         self.constructed["behaviorHints"]["proxyHeaders"] = {
             "request": {
                 "Authorization": f"Bearer {self.acc_token}",
-                "Range": "bytes=0-"  # Default range request; adjust dynamically for chunks
+                "Range": "bytes=0-1048575"  # Default range request; adjust dynamically for chunks
             }
         }
     
