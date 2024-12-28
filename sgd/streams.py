@@ -66,13 +66,20 @@ class Streams:
             "request": {"Server": "Stremio"}
         }
         return f"{self.proxy_url}/load/{file_id}/{file_name}"
-
+    
     def get_gapi_url(self):
         file_id = self.item.get("id")
         file_name = urllib.parse.quote(self.item.get("name")) or "file_name.vid"
+    
+        # Include headers for partial requests to enable streaming
         self.constructed["behaviorHints"]["proxyHeaders"] = {
-            "request": {"Authorization": f"Bearer {self.acc_token}"}
+            "request": {
+                "Authorization": f"Bearer {self.acc_token}",
+                "Range": "bytes=0-"  # Default range request; adjust dynamically for chunks
+            }
         }
+    
+        # Construct the API URL
         return f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media&file_name={file_name}"
 
     def construct_stream(self):
